@@ -1,0 +1,23 @@
+#!/bin/bash
+set -e
+
+export VAULT_ADDR="http://127.0.0.1:8200"
+export VAULT_TOKEN="root"
+
+echo "Enabling AppRole auth method..."
+./vault.exe auth enable approle 2>/dev/null || echo "AppRole already enabled"
+
+echo "Creating AppRole..."
+./vault.exe write auth/approle/role/my-role \
+  bind_secret_id=true \
+  secret_id_ttl=0 \
+  token_ttl=1h \
+  token_max_ttl=4h
+
+ROLE_ID=$(./vault.exe read -field=role_id auth/approle/role/my-role/role-id)
+export ROLE_ID
+
+SECRET_ID=$(./vault.exe write -field=secret_id -f auth/approle/role/my-role/secret-id)
+export SECRET_ID
+
+python main.py
