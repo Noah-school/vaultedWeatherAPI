@@ -7,13 +7,21 @@ export VAULT_TOKEN="root"
 echo "Enabling AppRole auth method..."
 ./vault.exe auth enable approle 2>/dev/null || echo "AppRole already enabled"
 
+echo "Creating read policy..."
+./vault.exe policy write weather-read-policy - <<EOF
+path "secret/data/weather-app" {
+  capabilities = ["read"]
+}
+EOF
+
 echo "Creating AppRole..."
 ./vault.exe write auth/approle/role/my-role \
+  token_policies="default,weather-read-policy" \
   bind_secret_id=true \
   secret_id_ttl=0 \
   token_ttl=1h \
   token_max_ttl=4h
-
+  
 ROLE_ID=$(./vault.exe read -field=role_id auth/approle/role/my-role/role-id)
 export ROLE_ID
 
