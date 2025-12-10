@@ -11,13 +11,20 @@ ROLE_ID = os.getenv("ROLE_ID")
 SECRET_ID = os.getenv("SECRET_ID")
 
 def conn():
+    if not ROLE_ID or not SECRET_ID:
+        print("Error: ROLE_ID or SECRET_ID is not set; cannot authenticate to Vault.")
+        return None
+
     client = hvac.Client(url=VAULT_ADDR)
     try:
         client.auth.approle.login(role_id=ROLE_ID, secret_id=SECRET_ID)
+        if not client.is_authenticated():
+            print("Error: Vault AppRole authentication failed.")
+            return None
         return client
     except Exception as e:
         print("Error:", e)
-        return False
+        return None
 
 def getApiKey():
     client = conn()
@@ -27,7 +34,7 @@ def getApiKey():
     try:
         response = client.secrets.kv.v2.read_secret_version(
             mount_point='secret',
-            path='weather-app',
+            path='weather-api',
             raise_on_deleted_version=True
         )
         return response['data']['data']['secret'] 
