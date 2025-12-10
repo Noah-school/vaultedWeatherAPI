@@ -16,3 +16,6 @@
 2. ga naar secrets engines
 3. selecter "secrets" en dan "weather-app"
 4. voeg secret api toe met de naam secret
+
+### encryptie
+Het script init.sh zet nu ook de transit engine op en maakt een encryptiesleutel (weather-key) aan. Deze sleutel wordt gebruikt door de webapplicatie om tekst te versleutelen via Vaults encryption-as-a-service api.

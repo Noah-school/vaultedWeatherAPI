@@ -1,6 +1,7 @@
 import os
+import base64
 import hvac
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 import requests
 
 app = Flask(__name__)
@@ -41,14 +42,19 @@ def index():
     <head>
         <style>
             body { display:grid; place-items:center}
-            button { padding: 10px;}
-            #result { margin-top: 20px; padding: 20px;}
+            #result, #encryptResult { margin-top: 20px; padding: 20px;}
         </style>
     </head>
     <body>
         <h1>Weather forecast</h1>
-        <button onclick="getInfo()">Get Weather</button>
-        <div id="result"></div>
+        <div class="controls">
+            <button onclick="getInfo()">Get Weather</button>
+            <div id="result"></div>
+
+            <input id="plaintext" type="text" placeholder="Text to encrypt" />
+            <button onclick="encryptText()">Encrypt</button>
+            <div id="encryptResult"></div>
+        </div>
 
         <script>
             async function getInfo() {
@@ -58,6 +64,30 @@ def index():
                     document.getElementById('result').innerHTML = JSON.stringify(data, null, 2);
                 } catch (e) {
                     document.getElementById('result').innerHTML = 'Error: ' + e;
+                }
+            }
+
+            async function encryptText() {
+                const text = document.getElementById('plaintext').value;
+                const target = document.getElementById('encryptResult');
+                target.innerHTML = '';
+
+                try {
+                    const response = await fetch('/api/encrypt', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text })
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Encryption failed');
+                    }
+
+                    target.innerHTML = data.ciphertext;
+                } catch (e) {
+                    target.innerHTML = 'Error: ' + e.message;
                 }
             }
         </script>
@@ -82,6 +112,33 @@ def get_information():
             'temp': data.get('main', {}).get('temp'),
             'weather': data.get('weather', [{}])[0].get('main')
         })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/encrypt', methods=['POST'])
+def encrypt_text():
+    try:
+        payload = request.get_json(silent=True) or {}
+        plaintext = payload.get('text', '')
+
+        if not plaintext:
+            return jsonify({'error': 'Nothing provided to encrypt'}), 400
+
+        client = conn()
+        if not client:
+            return jsonify({'error': 'Failed to auth with Vault'}), 500
+
+        encoded = base64.b64encode(plaintext.encode('utf-8')).decode('ascii')
+        response = client.secrets.transit.encrypt_data(
+            name='weather-key',
+            plaintext=encoded
+        )
+
+        ciphertext = response['data'].get('ciphertext')
+        if not ciphertext:
+            return jsonify({'error': 'No ciphertext returned from Vault'}), 500
+
+        return jsonify({'ciphertext': ciphertext})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
