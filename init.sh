@@ -28,7 +28,7 @@ path "transit/encrypt/weather-key" {
 EOF
 
 echo "Creating AppRole..."
-./vault write auth/approle/role/my-role \
+./vault write auth/approle/role/weather-role \
   token_policies="weather-policy,weather-transit-policy" \
   bind_secret_id=true \
   secret_id_ttl=24h \
