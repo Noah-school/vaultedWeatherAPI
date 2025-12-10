@@ -6,7 +6,7 @@
 
 2. Activeer vault:
     ```bash
-    ./vault.exe server -dev -dev-root-token-id="root" 
+    ./vault server -dev -dev-root-token-id="root" 
 
     ./init.sh
     ```
@@ -15,4 +15,4 @@
 1. Login met de dev-root-token-id: http://127.0.0.1:8200
 2. ga naar secrets engines
 3. selecter "secrets" en dan "weather-app"
-4. voeg secret toe
+4. voeg secret api toe met de naam secret
